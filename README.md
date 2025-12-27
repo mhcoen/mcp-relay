@@ -30,15 +30,11 @@ Code:    [sends via relay]
          "Sent to Desktop."
 ```
 
-Explicit commands like `relay:` and `/relay` are always available. But invocation is often implicit—the model reads the tool descriptions, understands their purpose, and connects "Ask Desktop" or "Send this to Code" to the right tool call.
+## Usage
 
-## Commands
+Type `relay` in Desktop or `/relay` in Code to check for messages from the other side. That's the primary interaction.
 
-Once set up, you can also use explicit commands:
-
-- `relay: <message>` — (Desktop) sends a message to Code
-- `/relay` — (Code) fetches and executes the latest instruction
-- `/relay <message>` — (Code) sends a message to Desktop
+Sending is usually implicit. When you say "Ask Desktop if this looks right" or "Send the README to Code," the model recognizes the intent and calls the relay automatically. Explicit send syntax exists—`relay: <message>` in Desktop, `/relay <message>` in Code—but you'll rarely need it.
 
 ## Setup
 
