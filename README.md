@@ -1,10 +1,12 @@
 # Relay
 
-**A message buffer between Claude Desktop and Claude Code.**
+A simple tool that moves information—files, code, data, conversation context—between Claude Desktop and Claude Code.
 
-Desktop is great for conversation—planning, review, thinking things through. Code is great for execution—editing files, running commands, iterating on errors. But they don't share context, so you end up copy-pasting between them.
+Both clients connect to a shared buffer via MCP. Just say "ask Desktop" or "send this to Code"—the model handles the rest. Unobtrusive system notifications let you know when something's waiting on the other side.
 
-Relay connects them. Both clients connect to a shared SQLite buffer via MCP. You decide what crosses the boundary.
+**Why?** Desktop and Code have different strengths. Desktop is better for conversation—planning, brainstorming, reviewing, iterating on prose. Code is better for execution—editing files, running commands, working through errors. But they don't share context. If you draft something in Desktop and want Code to implement it, or you want Desktop's opinion on code you're writing, you're copy-pasting between apps.
+
+Relay connects them. You stay in the flow.
 
 ## Example
 
@@ -94,7 +96,7 @@ cp /path/to/mcp-relay/relay.md ~/.claude/commands/
 
 ## Notifications
 
-The server includes built-in notifications. A background thread polls for unread messages and fires system alerts so you know when something's waiting. You still need to type `/relay` or `relay` to fetch, but at least you know something arrived.
+The server includes built-in notifications. A background thread polls for unread messages and fires system alerts so you know when something's waiting.
 
 | Platform | Method | Notes |
 |----------|--------|-------|
@@ -104,6 +106,12 @@ The server includes built-in notifications. A background thread polls for unread
 
 Notification duration and behavior are controlled by your OS settings, not the script.
 
+## Design Notes
+
+**The relay is global.** The buffer at `~/.relay_buffer.db` is shared across all projects. Claude Desktop has no concept of which project you're working on—it's a general-purpose chat interface—so per-project isolation isn't practical. This is intentional: one user, one machine, one relay.
+
+If you switch projects in Code, the relay comes with you. Old messages from the previous project may still be there; use `relay_clear()` or `/relay clear` if you want a fresh start.
+
 ## Tools
 
 | Tool | Description |
@@ -111,12 +119,6 @@ Notification duration and behavior are controlled by your OS settings, not the s
 | `relay_send(message, sender)` | Send a message (sender: "desktop" or "code") |
 | `relay_fetch(limit, reader)` | Fetch recent messages, optionally mark as read |
 | `relay_clear()` | Delete all messages from the buffer |
-
-## Design Notes
-
-**The relay is global.** The buffer at `~/.relay_buffer.db` is shared across all projects. Claude Desktop has no concept of which project you're working on—it's a general-purpose chat interface—so per-project isolation isn't practical. This is intentional: one user, one machine, one relay.
-
-If you switch projects in Code, the relay comes with you. Old messages from the previous project may still be there; use `relay_clear()` if you want a fresh start.
 
 ## Technical Details
 
