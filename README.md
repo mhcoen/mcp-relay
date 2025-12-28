@@ -150,7 +150,7 @@ If you switch projects in Code, the relay comes with you. Old messages from the 
 
 ## Seamless Mode
 
-A version that auto-fetches messages without typing `relay` exists but isn't included in this repository.
+A version that auto-fetches incoming messages without typing `relay` exists but isn't included in this repository.
 
 ## Author
 
