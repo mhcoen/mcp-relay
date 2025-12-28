@@ -1,12 +1,12 @@
 # Relay
 
-A simple tool that moves information—files, code, data, conversation context—between Claude Desktop and Claude Code.
+A wonderfully simple tool that moves information—files, code, data, conversation context—between Claude Desktop and Claude Code.
 
-Both clients connect to a shared buffer via MCP. Just say "ask Desktop" or "send this to Code"—the model handles the rest. Unobtrusive system notifications let you know when something's waiting on the other side.
+Both clients connect to a shared buffer via MCP. Just say "ask Desktop" or "send this to Code"—the model handles the rest. The models will also sometimes automatically consult each other. Unobtrusive system notifications let you know when something's waiting on the other side.
 
 **Why?** Desktop and Code have different strengths. Desktop is better for conversation—planning, brainstorming, reviewing, iterating on prose. Code is better for execution—editing files, running commands, working through errors. But they don't share context. If you draft something in Desktop and want Code to implement it, or you want Desktop's opinion on code you're writing, you're copy-pasting between apps.
 
-Relay connects them. You stay in the flow.
+Relay connects them without requiring you manually specify questions and cut & paste between windows. This is basic functionality that should have been integrated by Anthropic. 
 
 ## Example
 
