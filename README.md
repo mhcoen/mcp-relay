@@ -92,19 +92,17 @@ cp /path/to/mcp-relay/example.mcp.json /your/project/.mcp.json
 cp /path/to/mcp-relay/relay.md ~/.claude/commands/
 ```
 
-## Notifications (Optional)
+## Notifications
 
-Run the notification daemon to get system alerts when messages arrive:
+The server includes built-in notifications. A background thread polls for unread messages and fires system alerts so you know when something's waiting. You still need to type `/relay` or `relay` to fetch, but at least you know something arrived.
 
-```bash
-python relay_notify.py
-```
+| Platform | Method | Notes |
+|----------|--------|-------|
+| macOS | osascript | Native notification center |
+| Linux | notify-send | Requires libnotify |
+| Windows | PowerShell toast | Native toast notifications |
 
-The daemon polls the SQLite buffer and fires OS notifications for unread messages. It figures out who to notify based on read status—no arguments needed.
-
-You still need to type `/relay` or `relay` to fetch, but at least you know something's waiting.
-
-Works on macOS, Linux (requires `notify-send`), and Windows.
+Notification duration and behavior are controlled by your OS settings, not the script.
 
 ## Tools
 
@@ -113,6 +111,12 @@ Works on macOS, Linux (requires `notify-send`), and Windows.
 | `relay_send(message, sender)` | Send a message (sender: "desktop" or "code") |
 | `relay_fetch(limit, reader)` | Fetch recent messages, optionally mark as read |
 | `relay_clear()` | Delete all messages from the buffer |
+
+## Design Notes
+
+**The relay is global.** The buffer at `~/.relay_buffer.db` is shared across all projects. Claude Desktop has no concept of which project you're working on—it's a general-purpose chat interface—so per-project isolation isn't practical. This is intentional: one user, one machine, one relay.
+
+If you switch projects in Code, the relay comes with you. Old messages from the previous project may still be there; use `relay_clear()` if you want a fresh start.
 
 ## Technical Details
 

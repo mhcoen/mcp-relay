@@ -6,51 +6,22 @@ This server provides a persistent message relay buffer accessible via MCP tools.
 Both Claude Desktop and Claude Code connect as MCP clients; neither shares
 conversation history with the other. Human-controlled send/fetch actions only.
 
+A background thread polls for unread messages and fires system notifications
+so you know when something's waiting on either side.
+
 Transport: stdio (standard for Claude Desktop integration)
 Buffer: SQLite database at ~/.relay_buffer.db (shared across all clients)
 Python: Requires 3.9+
 
 Usage:
     python relay_server.py
-
-Configuration for Claude Desktop (claude_desktop_config.json):
-    {
-      "mcpServers": {
-        "relay": {
-          "command": "/Users/mhcoen/proj/relay/.venv/bin/python",
-          "args": ["/Users/mhcoen/proj/relay/relay_server.py"]
-        }
-      }
-    }
-
-Configuration for Claude Code (.mcp.json in project root):
-    {
-      "mcpServers": {
-        "relay": {
-          "command": "/Users/mhcoen/proj/relay/.venv/bin/python",
-          "args": ["/Users/mhcoen/proj/relay/relay_server.py"]
-        }
-      }
-    }
-
-Example tool calls:
-    # From Desktop: send a prompt fragment
-    relay_send(message="Refactor the auth module to use JWT", sender="desktop")
-
-    # From Code: fetch recent messages and mark as read by code
-    relay_fetch(limit=5, reader="code")
-
-    # From Code: send a summary back
-    relay_send(message="Completed JWT refactor. See auth.py lines 45-120.", sender="code")
-
-    # From Desktop: fetch the response and mark as read by desktop
-    relay_fetch(limit=1, reader="desktop")
-
-    # Clear all messages
-    relay_clear()
 """
 
+import platform
 import sqlite3
+import subprocess
+import threading
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Literal, Optional
@@ -66,6 +37,7 @@ __version__ = "1.0"
 MAX_MESSAGES = 20          # Rolling window size (oldest messages evicted first)
 MAX_MESSAGE_SIZE = 65536   # 64 KB per message limit
 DB_PATH = Path.home() / ".relay_buffer.db"
+NOTIFY_POLL_INTERVAL = 2   # Notification polling interval in seconds
 
 # Valid sender values (for defensive validation)
 VALID_SENDERS = {"desktop", "code"}
@@ -106,6 +78,72 @@ def _init_db() -> None:
 
 # Initialize on module load
 _init_db()
+
+# =============================================================================
+# NOTIFICATIONS
+# =============================================================================
+
+
+def _send_notification(title: str, message: str) -> None:
+    """Send a system notification."""
+    if len(message) > 200:
+        message = message[:197] + "..."
+
+    system = platform.system()
+
+    if system == "Darwin":  # macOS
+        message = message.replace('\\', '\\\\').replace('"', '\\"')
+        title = title.replace('\\', '\\\\').replace('"', '\\"')
+        script = f'display notification "{message}" with title "{title}"'
+        subprocess.run(["osascript", "-e", script], capture_output=True)
+    elif system == "Linux":
+        subprocess.run(["notify-send", title, message], capture_output=True)
+    elif system == "Windows":
+        ps_script = f'''
+        [Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null
+        $template = [Windows.UI.Notifications.ToastTemplateType]::ToastText02
+        $xml = [Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent($template)
+        $xml.GetElementsByTagName("text")[0].AppendChild($xml.CreateTextNode("{title}"))
+        $xml.GetElementsByTagName("text")[1].AppendChild($xml.CreateTextNode("{message}"))
+        $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
+        [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier("Relay").Show($toast)
+        '''
+        subprocess.run(["powershell", "-Command", ps_script], capture_output=True)
+
+
+def _notification_loop() -> None:
+    """Background thread: poll for unread messages and notify."""
+    notified: set[int] = set()
+
+    while True:
+        try:
+            with _get_connection() as conn:
+                # Find unread messages from either side
+                rows = conn.execute("""
+                    SELECT id, sender, message
+                    FROM messages
+                    WHERE (sender = 'desktop' AND read_by_code_at IS NULL)
+                       OR (sender = 'code' AND read_by_desktop_at IS NULL)
+                """).fetchall()
+
+            for row in rows:
+                msg_id = row["id"]
+                if msg_id not in notified:
+                    sender = row["sender"].title()
+                    _send_notification(f"Relay: from {sender}", row["message"])
+                    notified.add(msg_id)
+
+        except Exception:
+            pass  # Silently ignore errors in background thread
+
+        time.sleep(NOTIFY_POLL_INTERVAL)
+
+
+def _start_notification_thread() -> None:
+    """Start the background notification thread."""
+    thread = threading.Thread(target=_notification_loop, daemon=True)
+    thread.start()
+
 
 # =============================================================================
 # MCP SERVER SETUP
@@ -248,6 +286,8 @@ def relay_clear() -> dict:
 # =============================================================================
 
 if __name__ == "__main__":
+    # Start background notification thread
+    _start_notification_thread()
     # Run with stdio transport (standard for Claude Desktop/Code integration)
     # All logging goes to stderr; stdout is reserved for MCP JSON-RPC messages
     mcp.run(transport="stdio")
