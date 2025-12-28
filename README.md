@@ -112,6 +112,8 @@ cp /path/to/mcp-relay/example.mcp.json /your/project/.mcp.json
 cp /path/to/mcp-relay/relay.md ~/.claude/commands/
 ```
 
+**Note:** After adding the MCP server config, restart both Claude Desktop and Claude Code for the relay to connect.
+
 ## Notifications
 
 The server includes built-in notifications. A background thread polls for unread messages and fires system alerts so you know when something's waiting.
