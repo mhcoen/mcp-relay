@@ -50,35 +50,12 @@ Example tool calls:
     relay_clear()
 """
 
-import platform
 import sqlite3
-import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Literal, Optional
 
 from mcp.server.fastmcp import FastMCP
-
-
-def _send_notification(title: str, message: str):
-    """Send a system notification."""
-    # Truncate long messages
-    if len(message) > 200:
-        message = message[:197] + "..."
-
-    # Escape quotes for shell
-    message = message.replace('"', '\\"')
-    title = title.replace('"', '\\"')
-
-    system = platform.system()
-    try:
-        if system == "Darwin":  # macOS
-            script = f'display notification "{message}" with title "{title}"'
-            subprocess.run(["osascript", "-e", script], capture_output=True)
-        elif system == "Linux":
-            subprocess.run(["notify-send", title, message], capture_output=True)
-    except Exception:
-        pass  # Notifications are best-effort
 
 __version__ = "1.0"
 
@@ -190,11 +167,6 @@ def relay_send(message: str, sender: Literal["desktop", "code"]) -> dict:
                 )
             """, (MAX_MESSAGES,))
             conn.commit()
-
-        # Notify the recipient
-        recipient = "Code" if sender == "desktop" else "Desktop"
-        _send_notification(f"Relay: from {sender.title()}", message)
-
         return {"ok": True}
     except sqlite3.Error as e:
         return {"ok": False, "error": f"Database error: {e}"}
