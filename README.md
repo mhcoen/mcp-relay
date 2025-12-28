@@ -12,24 +12,42 @@ Relay connects them. You stay in the flow.
 
 ```
 [In Code]
-You:     Send the README to Desktop, I want to improve it.
-Code:    [sends README via relay]
+You:     My classifier's stuck at 72% accuracy. Send the
+         training config and last epoch's metrics to Desktop.
+Code:    [sends config.yaml and metrics via relay]
 
 [In Desktop]
-You:     Get the README and make it more appealing.
-Desktop: [fetches from relay, sees README, responds with suggestions]
+You:     relay
+Desktop: [fetches config and metrics]
+         The loss curve suggests you're underfitting. Learning
+         rate 1e-5 is conservative for a model this size...
 
-You:     Good, but the intro is too glib.
-Desktop: [refines and sends via relay]
-         "Sent. Go type /relay in Code."
+You:     What would you try?
+Desktop: Bump to 3e-5, add warmup steps, and your batch size
+         of 8 is small—if memory allows, try 16. Also the
+         class imbalance is brutal: 80/15/5 split. Consider
+         weighted loss or oversampling the minority classes.
+
+You:     Specify the changes.
+Desktop: [sends updated config via relay]
 
 [In Code]
 You:     /relay
-Code:    Done. Updated README.md with the revised intro.
+Code:    Got it. Updating config.yaml and adding class weights
+         to the loss function.
+         [edits files, starts training run]
 
-You:     Ask Desktop if this is ready to go.
+         Epoch 12: accuracy up to 79%, but precision on
+         class 2 dropped. Want Desktop's take?
+
+You:     Yeah, send the confusion matrix.
 Code:    [sends via relay]
-         "Sent to Desktop."
+
+[In Desktop]
+You:     relay
+Desktop: Class 2 is getting confused with class 0—they may be
+         semantically close. I need more examples.
+         [sends request to Code via relay]
 ```
 
 ## Usage
@@ -127,6 +145,10 @@ If you switch projects in Code, the relay comes with you. Old messages from the 
 - Message limit: 64 KB per message
 - Transport: stdio (standard MCP)
 - Python: 3.9+
+
+## Seamless Mode
+
+A version that auto-fetches messages without typing `relay` exists but isn't included in this repository.
 
 ## Author
 
