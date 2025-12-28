@@ -57,6 +57,8 @@ from typing import Literal, Optional
 
 from mcp.server.fastmcp import FastMCP
 
+__version__ = "1.0"
+
 # =============================================================================
 # CONFIGURATION
 # =============================================================================
