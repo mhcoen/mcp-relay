@@ -2,18 +2,16 @@
 """
 Notification daemon for the MCP relay.
 
-Watches the relay buffer and sends system notifications when messages arrive
-from the other side. Run this in the background to get notified without polling.
+Watches the relay buffer and sends system notifications when unread messages
+appear. No arguments needed—it figures out who to notify based on read status.
 
 Usage:
-    python relay_notify.py --for code     # Notify when Desktop sends to Code
-    python relay_notify.py --for desktop  # Notify when Code sends to Desktop
+    python relay_notify.py
 
 macOS: Uses osascript for notifications
 Linux: Uses notify-send (install libnotify)
 """
 
-import argparse
 import platform
 import sqlite3
 import subprocess
@@ -24,48 +22,14 @@ DB_PATH = Path.home() / ".relay_buffer.db"
 POLL_INTERVAL = 2  # seconds
 
 
-def get_last_message_id() -> int:
-    """Get the ID of the most recent message."""
-    if not DB_PATH.exists():
-        return 0
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.execute("SELECT MAX(id) FROM messages")
-        result = cursor.fetchone()[0]
-        conn.close()
-        return result or 0
-    except sqlite3.Error:
-        return 0
-
-
-def get_new_messages(since_id: int, from_sender: str) -> list[tuple[int, str]]:
-    """Get messages from a sender since the given ID."""
-    if not DB_PATH.exists():
-        return []
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        conn.row_factory = sqlite3.Row
-        cursor = conn.execute(
-            "SELECT id, message FROM messages WHERE id > ? AND sender = ? ORDER BY id",
-            (since_id, from_sender)
-        )
-        rows = [(row["id"], row["message"]) for row in cursor.fetchall()]
-        conn.close()
-        return rows
-    except sqlite3.Error:
-        return []
-
-
 def send_notification(title: str, message: str):
     """Send a system notification."""
-    # Truncate long messages
     if len(message) > 200:
         message = message[:197] + "..."
 
     system = platform.system()
 
     if system == "Darwin":  # macOS
-        # Escape for AppleScript
         message = message.replace('\\', '\\\\').replace('"', '\\"')
         title = title.replace('\\', '\\\\').replace('"', '\\"')
         script = f'display notification "{message}" with title "{title}"'
@@ -73,7 +37,6 @@ def send_notification(title: str, message: str):
     elif system == "Linux":
         subprocess.run(["notify-send", title, message], capture_output=True)
     elif system == "Windows":
-        # Basic PowerShell notification
         ps_script = f'''
         [Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null
         $template = [Windows.UI.Notifications.ToastTemplateType]::ToastText02
@@ -86,41 +49,55 @@ def send_notification(title: str, message: str):
         subprocess.run(["powershell", "-Command", ps_script], capture_output=True)
 
 
+def get_unread_messages() -> list[tuple[int, str, str, bool, bool]]:
+    """Get all messages with their read status.
+
+    Returns list of (id, sender, message, read_by_desktop, read_by_code).
+    """
+    if not DB_PATH.exists():
+        return []
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.execute("""
+            SELECT id, sender, message,
+                   read_by_desktop_at IS NOT NULL as read_by_desktop,
+                   read_by_code_at IS NOT NULL as read_by_code
+            FROM messages
+            ORDER BY id
+        """)
+        rows = [(r[0], r[1], r[2], bool(r[3]), bool(r[4])) for r in cursor.fetchall()]
+        conn.close()
+        return rows
+    except sqlite3.Error:
+        return []
+
+
 def main():
-    parser = argparse.ArgumentParser(description="Relay notification daemon")
-    parser.add_argument(
-        "--for",
-        dest="recipient",
-        choices=["desktop", "code"],
-        required=True,
-        help="Who to notify (desktop or code)"
-    )
-    parser.add_argument(
-        "--interval",
-        type=float,
-        default=POLL_INTERVAL,
-        help=f"Poll interval in seconds (default: {POLL_INTERVAL})"
-    )
-    args = parser.parse_args()
+    print("Watching for unread relay messages...")
+    print(f"Polling every {POLL_INTERVAL}s. Press Ctrl+C to stop.")
 
-    # Notify recipient when the OTHER side sends
-    from_sender = "code" if args.recipient == "desktop" else "desktop"
-
-    print(f"Watching for messages from {from_sender}...")
-    print(f"Polling every {args.interval}s. Press Ctrl+C to stop.")
-
-    last_id = get_last_message_id()
+    # Track which messages we've already notified about
+    notified_for_desktop: set[int] = set()
+    notified_for_code: set[int] = set()
 
     try:
         while True:
-            new_messages = get_new_messages(last_id, from_sender)
+            messages = get_unread_messages()
 
-            for msg_id, content in new_messages:
-                title = f"Relay: from {from_sender.title()}"
-                send_notification(title, content)
-                last_id = msg_id
+            for msg_id, sender, content, read_by_desktop, read_by_code in messages:
+                # Message from Desktop, not yet read by Code
+                if sender == "desktop" and not read_by_code:
+                    if msg_id not in notified_for_code:
+                        send_notification("Relay: from Desktop", content)
+                        notified_for_code.add(msg_id)
 
-            time.sleep(args.interval)
+                # Message from Code, not yet read by Desktop
+                if sender == "code" and not read_by_desktop:
+                    if msg_id not in notified_for_desktop:
+                        send_notification("Relay: from Code", content)
+                        notified_for_desktop.add(msg_id)
+
+            time.sleep(POLL_INTERVAL)
     except KeyboardInterrupt:
         print("\nStopped.")
 

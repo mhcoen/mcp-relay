@@ -97,11 +97,12 @@ cp /path/to/mcp-relay/relay.md ~/.claude/commands/
 Run the notification daemon to get system alerts when messages arrive:
 
 ```bash
-python relay_notify.py --for code     # Notify when Desktop sends
-python relay_notify.py --for desktop  # Notify when Code sends
+python relay_notify.py
 ```
 
-The daemon polls the SQLite buffer and fires OS notifications when new messages appear from the other side. You still need to type `/relay` or `relay` to fetch—but at least you know something's waiting.
+The daemon polls the SQLite buffer and fires OS notifications for unread messages. It figures out who to notify based on read status—no arguments needed.
+
+You still need to type `/relay` or `relay` to fetch, but at least you know something's waiting.
 
 Works on macOS, Linux (requires `notify-send`), and Windows.
 
