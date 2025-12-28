@@ -48,14 +48,22 @@ pip install -r requirements.txt
 
 ### Claude Desktop
 
-Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
+Add the relay server to your Claude Desktop config:
+
+| Platform | Config location |
+|----------|-----------------|
+| macOS    | `~/Library/Application Support/Claude/claude_desktop_config.json` |
+| Linux    | `~/.config/Claude/claude_desktop_config.json` |
+| Windows  | `%APPDATA%\Claude\claude_desktop_config.json` |
+
+Add this to the `mcpServers` section (adjust paths for your system):
 
 ```json
 {
   "mcpServers": {
     "relay": {
-      "command": "/path/to/relay/.venv/bin/python",
-      "args": ["/path/to/relay/relay_server.py"]
+      "command": "/path/to/mcp-relay/.venv/bin/python",
+      "args": ["/path/to/mcp-relay/relay_server.py"]
     }
   }
 }
@@ -71,23 +79,17 @@ Then teach Desktop the conventions by telling it to remember these instructions:
 
 ### Claude Code
 
-1. Add the MCP server to your project's `.mcp.json`:
-
-```json
-{
-  "mcpServers": {
-    "relay": {
-      "command": "/path/to/relay/.venv/bin/python",
-      "args": ["/path/to/relay/relay_server.py"]
-    }
-  }
-}
-```
-
-2. Install the `/relay` slash command (copy to your global commands directory):
+1. Add the MCP server to your project's `.mcp.json`. This file tells Claude Code which MCP servers to connect to—copy `example.mcp.json` and adjust paths:
 
 ```bash
-cp /path/to/relay/.claude/commands/relay.md ~/.claude/commands/
+cp /path/to/mcp-relay/example.mcp.json /your/project/.mcp.json
+# Edit .mcp.json to fix the paths for your system
+```
+
+2. Install the `/relay` slash command:
+
+```bash
+cp /path/to/mcp-relay/relay.md ~/.claude/commands/
 ```
 
 ## Tools
