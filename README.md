@@ -92,21 +92,9 @@ cp /path/to/mcp-relay/example.mcp.json /your/project/.mcp.json
 cp /path/to/mcp-relay/relay.md ~/.claude/commands/
 ```
 
-## Notifications (Optional)
+## Notifications
 
-Run the notification daemon to get system alerts when messages arrive:
-
-```bash
-# Notify when Desktop sends to Code (run on your dev machine)
-python relay_notify.py --for code
-
-# Notify when Code sends to Desktop
-python relay_notify.py --for desktop
-```
-
-This polls the SQLite buffer and sends OS notifications. You still need to type `/relay` or `relay` to fetch—but at least you know something's waiting.
-
-Works on macOS, Linux (requires `notify-send`), and Windows.
+System notifications are built-in. When a message is sent via the relay, a notification appears on macOS or Linux (requires `notify-send`). You still need to type `/relay` or `relay` to fetch—but at least you know something's waiting.
 
 ## Tools
 
