@@ -50,7 +50,7 @@ Desktop: Bump to 3e-5, add warmup steps, and your batch size
 You:     Specify the changes.
 Desktop: [sends updated config via relay]
 
-[notification pops up in Code]
+[System notification appears that a message has been sent to Code]
 
 [In Code]
 You:     /relay
