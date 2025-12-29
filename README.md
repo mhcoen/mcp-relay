@@ -60,7 +60,7 @@ Code:    [sends via relay]
 You:     relay
 Desktop: Class 2 is getting confused with class 0—they may be
          semantically close. I need more examples.
-         [sends request to Code via relay]
+         [automatically sends request to Code via relay]
 ```
 
 ## Usage
