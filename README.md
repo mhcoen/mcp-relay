@@ -81,7 +81,7 @@ Sending is usually implicit. When you say "Ask Desktop if this looks right" or "
 
 When a message arrives, you'll get a system notification so you know to check the other side. No need to poll manually.
 
-<img src="screenshot.png" width="346">
+<img src="https://raw.githubusercontent.com/mhcoen/mcp-relay/main/screenshot.png" width="346">
 
 | Platform | Method | Notes |
 |----------|--------|-------|
