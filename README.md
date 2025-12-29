@@ -56,6 +56,11 @@ Type `relay` in Desktop or `/relay` in Code to check for messages from the other
 
 Sending is usually implicit. When you say "Ask Desktop if this looks right" or "Send the README to Code," the models recognize the intent and call the relay automatically. Explicit send syntax exists—`relay: <message>` in Desktop, `/relay <message>` in Code—but you'll rarely need it.
 
+## Note 
+
+In general, for messages that would be a page or two in length this is quite fast. If you want to send a long file, however, it is faster to just manually drag it into the LLM-interface that you want to access it. You can still send accompanying messages using relay but the architectures of Claude Desktop and Claude Code don't optimize file transport via an MCP server.
+
+
 ## Setup
 
 ### Install
@@ -130,14 +135,14 @@ Notification duration and behavior are controlled by your OS settings, not the s
 
 **The relay is global.** The buffer at `~/.relay_buffer.db` is shared across all projects. Claude Desktop has no concept of which project you're working on—it's a general-purpose chat interface—so per-project isolation isn't practical. This is intentional: one user, one machine, one relay.
 
-If you switch projects in Code, the relay comes with you. Old messages from the previous project may still be there; use `relay_clear()` or `/relay clear` if you want a fresh start. If you want separate conversations in Desktop for different projects, just start a new chat there.
+If you switch projects in Code, the relay comes with you. Old messages from the previous project may still be there; use `relay_clear()` if you want a fresh start. If you want separate conversations in Desktop for different projects, just start a new chat there.
 
 ## Tools
 
 | Tool | Description |
 |------|-------------|
 | `relay_send(message, sender)` | Send a message (sender: "desktop" or "code") |
-| `relay_fetch(limit, reader)` | Fetch recent messages, optionally mark as read |
+| `relay_fetch(limit, reader, unread_only)` | Fetch recent messages, optionally mark as read |
 | `relay_clear()` | Delete all messages from the buffer |
 
 ## Technical Details
