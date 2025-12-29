@@ -141,7 +141,7 @@ cp /path/to/mcp-relay/example.mcp.json /your/project/.mcp.json
 # Edit .mcp.json to fix the paths for your system
 ```
 
-2. Install the `/relay` slash command:
+2. Install the `/relay` slash command for Claude Code:
 
 ```bash
 cp /path/to/mcp-relay/relay.md ~/.claude/commands/
