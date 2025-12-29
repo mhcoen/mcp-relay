@@ -2,7 +2,7 @@
 
 A wonderfully simple tool that moves information—files, code, data, comments, directions, etc.—between Claude Desktop and Claude Code while keeping their main context windows separate.
 
-Both clients connect to a shared buffer via MCP. Just say "ask Desktop" or "send this to Code"—the models handle the rest. Models will also automatically send messages if they determine they need information the other model has. System notifications alert you when something's waiting on the other side.
+Both Claudes can send messages autonomously—when they need input from the other side, they just do it. You get a system notification when something arrives. You fetch when you're ready.
 
 **Why?** Desktop and Code have different strengths. Desktop is better for conversation—planning, brainstorming, reviewing, iterating on prose. Code is better for execution—editing files, running commands, working through errors. But they don't share context. If you draft something in Desktop and want Code to implement it, or you want Desktop's opinion on code you're writing, you're copy-pasting between apps.
 
