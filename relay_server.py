@@ -157,7 +157,8 @@ def _notification_loop() -> None:
                 msg_id = row["id"]
                 if msg_id not in notified:
                     sender = row["sender"].title()
-                    _send_notification(f"Relay: from {sender}", row["message"])
+                    recipient = "Desktop" if row["sender"] == "code" else "Code"
+                    _send_notification(f"Relay: {sender} to {recipient}", row["message"])
                     notified.add(msg_id)
 
         except Exception:
