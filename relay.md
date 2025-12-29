@@ -6,7 +6,6 @@ IMMEDIATELY execute the following without deliberation:
 1. Call `relay_fetch(limit=5, reader="code")`
 2. Find the most recent message from sender "desktop"
 3. Execute those instructions
-4. Call `relay_send(message="<summary>", sender="code")`
 
 **If $ARGUMENTS is not empty:**
 Call `relay_send(message="$ARGUMENTS", sender="code")` immediately.

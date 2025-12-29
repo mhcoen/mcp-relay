@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
-"""
-MCP Relay Server for Claude Desktop <-> Claude Code message passing.
+"""MCP Relay Server for Claude Desktop <-> Claude Code message passing.
 
 This server provides a persistent message relay buffer accessible via MCP tools.
 Both Claude Desktop and Claude Code connect as MCP clients; neither shares
-conversation history with the other. Human-controlled send/fetch actions only.
+conversation history with the other.
 
-A background thread polls for unread messages and fires system notifications
+Check for messages with relay (Desktop) or /relay (Code). Send
+explicitly with relay: <message> or /relay <message>—or just say 'ask
+Desktop' or 'tell Code' and the model figures it out.
+
+A background thread polls for unread messages and triggers system notifications
 so you know when something's waiting on either side.
 
 Transport: stdio (standard for Claude Desktop integration)
@@ -15,11 +18,13 @@ Python: Requires 3.9+
 
 Usage:
     python relay_server.py
+
 """
 
 import platform
 import sqlite3
 import subprocess
+import sys
 import threading
 import time
 from datetime import datetime, timezone
@@ -38,9 +43,27 @@ MAX_MESSAGES = 20          # Rolling window size (oldest messages evicted first)
 MAX_MESSAGE_SIZE = 65536   # 64 KB per message limit
 DB_PATH = Path.home() / ".relay_buffer.db"
 NOTIFY_POLL_INTERVAL = 2   # Notification polling interval in seconds
+IDLE_TIMEOUT = 3600        # Exit after 1 hour of inactivity
 
 # Valid sender values (for defensive validation)
 VALID_SENDERS = {"desktop", "code"}
+
+# Track last activity for idle timeout
+_last_activity = time.time()
+_activity_lock = threading.Lock()
+
+
+def _touch_activity() -> None:
+    """Update last activity timestamp."""
+    global _last_activity
+    with _activity_lock:
+        _last_activity = time.time()
+
+
+def _is_idle() -> bool:
+    """Check if server has been idle past timeout."""
+    with _activity_lock:
+        return (time.time() - _last_activity) > IDLE_TIMEOUT
 
 # =============================================================================
 # DATABASE SETUP
@@ -112,10 +135,14 @@ def _send_notification(title: str, message: str) -> None:
 
 
 def _notification_loop() -> None:
-    """Background thread: poll for unread messages and notify."""
+    """Background thread: poll for unread messages, notify, and check idle timeout."""
     notified: set[int] = set()
 
     while True:
+        # Check idle timeout
+        if _is_idle():
+            sys.exit(0)
+
         try:
             with _get_connection() as conn:
                 # Find unread messages from either side
@@ -175,6 +202,7 @@ def relay_send(message: str, sender: Literal["desktop", "code"]) -> dict:
         {"ok": True} on success.
         {"ok": False, "error": "..."} on failure.
     """
+    _touch_activity()
     # Defensive sender validation (in addition to Literal type hint)
     if sender not in VALID_SENDERS:
         return {
@@ -215,7 +243,11 @@ _READ_COLUMNS = {"desktop": "read_by_desktop_at", "code": "read_by_code_at"}
 
 
 @mcp.tool()
-def relay_fetch(limit: int = 5, reader: Optional[Literal["desktop", "code"]] = None) -> list[dict]:
+def relay_fetch(
+    limit: int = 5,
+    reader: Optional[Literal["desktop", "code"]] = None,
+    unread_only: bool = True
+) -> list[dict]:
     """
     Fetch messages from the other Claude client.
 
@@ -226,18 +258,28 @@ def relay_fetch(limit: int = 5, reader: Optional[Literal["desktop", "code"]] = N
     Args:
         limit: Maximum number of messages to return (default 5, max 20).
         reader: Optional. If provided ("desktop" or "code"), marks fetched messages as read.
+        unread_only: If true and reader is specified, only return messages unread by that reader.
 
     Returns:
         List of message objects with id, sender, message, timestamp, and read timestamps.
     """
+    _touch_activity()
     # Clamp limit to valid range
     limit = max(1, min(limit, MAX_MESSAGES))
 
     with _get_connection() as conn:
-        rows = conn.execute("""
-            SELECT id, sender, message, timestamp, read_by_desktop_at, read_by_code_at
-            FROM messages ORDER BY id DESC LIMIT ?
-        """, (limit,)).fetchall()
+        # Build query based on unread_only filter
+        if unread_only and reader in VALID_SENDERS:
+            col = _READ_COLUMNS[reader]
+            rows = conn.execute(f"""
+                SELECT id, sender, message, timestamp, read_by_desktop_at, read_by_code_at
+                FROM messages WHERE {col} IS NULL ORDER BY id DESC LIMIT ?
+            """, (limit,)).fetchall()
+        else:
+            rows = conn.execute("""
+                SELECT id, sender, message, timestamp, read_by_desktop_at, read_by_code_at
+                FROM messages ORDER BY id DESC LIMIT ?
+            """, (limit,)).fetchall()
 
         # Mark as read if reader is specified
         if reader in VALID_SENDERS and rows:
@@ -271,6 +313,7 @@ def relay_clear() -> dict:
         {"ok": True, "deleted": <count>} on success.
         {"ok": False, "error": "..."} on failure.
     """
+    _touch_activity()
     try:
         with _get_connection() as conn:
             cursor = conn.execute("DELETE FROM messages")
