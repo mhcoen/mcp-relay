@@ -145,6 +145,7 @@ If you switch projects in Code, the relay comes with you. Old messages from the 
 - Buffer: SQLite at `~/.relay_buffer.db`
 - Rolling window: 20 messages max (oldest evicted first)
 - Message limit: 64 KB per message
+- Idle timeout: 1 hour (server exits automatically when inactive)
 - Transport: stdio (standard MCP)
 - Python: 3.9+
 
