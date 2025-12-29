@@ -54,7 +54,7 @@ Desktop: Class 2 is getting confused with class 0—they may be
 
 Type `relay` in Desktop or `/relay` in Code to check for messages from the other side. That's the primary interaction.
 
-Sending is usually implicit. When you say "Ask Desktop if this looks right" or "Send the README to Code," the model recognizes the intent and calls the relay automatically. Explicit send syntax exists—`relay: <message>` in Desktop, `/relay <message>` in Code—but you'll rarely need it.
+Sending is usually implicit. When you say "Ask Desktop if this looks right" or "Send the README to Code," the models recognize the intent and call the relay automatically. Explicit send syntax exists—`relay: <message>` in Desktop, `/relay <message>` in Code—but you'll rarely need it.
 
 ## Setup
 
