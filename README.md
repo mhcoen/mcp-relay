@@ -110,7 +110,7 @@ Add this to the `mcpServers` section:
   "mcpServers": {
     "relay": {
       "command": "uvx",
-      "args": ["relay-mcp", "--client", "desktop"]
+      "args": ["mcp-server-relay", "--client", "desktop"]
     }
   }
 }
@@ -127,7 +127,7 @@ Then add these memories to Desktop (paste each one):
 1. Install the `/relay` slash command (one-time setup):
 
 ```bash
-uvx relay-mcp --setup-code
+uvx mcp-server-relay --setup-code
 ```
 
 2. Add the MCP server to your project's `.mcp.json`:
@@ -137,7 +137,7 @@ uvx relay-mcp --setup-code
   "mcpServers": {
     "relay": {
       "command": "uvx",
-      "args": ["relay-mcp", "--client", "code"]
+      "args": ["mcp-server-relay", "--client", "code"]
     }
   }
 }

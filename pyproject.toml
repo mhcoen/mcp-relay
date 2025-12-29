@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "relay-mcp"
+name = "mcp-server-relay"
 version = "1.0.0"
 description = "MCP relay server for Claude Desktop <-> Claude Code communication"
 readme = "README.md"
@@ -32,7 +32,7 @@ Homepage = "https://github.com/mhcoen/mcp-relay"
 Repository = "https://github.com/mhcoen/mcp-relay"
 
 [project.scripts]
-relay-mcp = "relay_server:main"
+mcp-server-relay = "relay_server:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["."]
