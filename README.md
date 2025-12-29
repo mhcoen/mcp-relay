@@ -93,14 +93,6 @@ Notification duration and behavior are controlled by your OS settings, not the s
 
 ## Setup
 
-### Install
-
-```bash
-python -m venv .venv
-source .venv/bin/activate  # or .venv\Scripts\activate on Windows
-pip install -r requirements.txt
-```
-
 ### Claude Desktop
 
 Add the relay server to your Claude Desktop config:
@@ -111,14 +103,14 @@ Add the relay server to your Claude Desktop config:
 | Linux    | `~/.config/Claude/claude_desktop_config.json` |
 | Windows  | `%APPDATA%\Claude\claude_desktop_config.json` |
 
-Add this to the `mcpServers` section (adjust paths for your system):
+Add this to the `mcpServers` section:
 
 ```json
 {
   "mcpServers": {
     "relay": {
-      "command": "/path/to/mcp-relay/.venv/bin/python",
-      "args": ["/path/to/mcp-relay/relay_server.py", "--client", "desktop"]
+      "command": "uvx",
+      "args": ["relay-mcp", "--client", "desktop"]
     }
   }
 }
@@ -132,17 +124,23 @@ Then add these memories to Desktop (paste each one):
 
 ### Claude Code
 
-1. Add the MCP server to your project's `.mcp.json`. This file tells Claude Code which MCP servers to connect to—copy `example.mcp.json` and adjust paths:
+1. Install the `/relay` slash command (one-time setup):
 
 ```bash
-cp /path/to/mcp-relay/example.mcp.json /your/project/.mcp.json
-# Edit .mcp.json to fix the paths for your system
+uvx relay-mcp --setup-code
 ```
 
-2. Install the `/relay` slash command for Claude Code:
+2. Add the MCP server to your project's `.mcp.json`:
 
-```bash
-cp /path/to/mcp-relay/relay.md ~/.claude/commands/
+```json
+{
+  "mcpServers": {
+    "relay": {
+      "command": "uvx",
+      "args": ["relay-mcp", "--client", "code"]
+    }
+  }
+}
 ```
 
 **Note:** After adding the MCP server config, restart both Claude Desktop and Claude Code for the relay to connect.

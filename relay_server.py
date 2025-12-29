@@ -22,6 +22,7 @@ Usage:
 """
 
 import argparse
+import os
 import platform
 import sqlite3
 import subprocess
@@ -336,17 +337,76 @@ def relay_clear() -> dict:
 
 
 # =============================================================================
+# SETUP COMMAND
+# =============================================================================
+
+RELAY_COMMAND = '''\
+# Relay Command
+
+IMMEDIATELY execute the following without deliberation:
+
+**If $ARGUMENTS is empty:**
+1. Call `relay_fetch(limit=5, reader="code")`
+2. Find the most recent message from sender "desktop"
+3. Execute those instructions
+
+**If $ARGUMENTS is not empty:**
+Call `relay_send(message="$ARGUMENTS", sender="code")` immediately.
+
+## Arguments
+$ARGUMENTS
+'''
+
+
+def _get_commands_dir() -> Path:
+    """Get the Claude Code commands directory for the current platform."""
+    system = platform.system()
+    if system == "Windows":
+        # Windows: %APPDATA%\Claude\commands
+        appdata = os.environ.get("APPDATA")
+        if appdata:
+            return Path(appdata) / "Claude" / "commands"
+        return Path.home() / "AppData" / "Roaming" / "Claude" / "commands"
+    else:
+        # macOS and Linux: ~/.claude/commands
+        return Path.home() / ".claude" / "commands"
+
+
+def _setup_code() -> None:
+    """Install the /relay slash command for Claude Code."""
+    commands_dir = _get_commands_dir()
+    commands_dir.mkdir(parents=True, exist_ok=True)
+    relay_path = commands_dir / "relay.md"
+    relay_path.write_text(RELAY_COMMAND)
+    print(f"Installed /relay command to {relay_path}")
+
+
+# =============================================================================
 # ENTRY POINT
 # =============================================================================
 
-if __name__ == "__main__":
+
+def main() -> None:
+    """Main entry point for the relay server."""
+    global _client_identity
+
     parser = argparse.ArgumentParser(description="MCP Relay Server")
     parser.add_argument(
         "--client",
         choices=["desktop", "code"],
         help="Client identity for notification filtering"
     )
+    parser.add_argument(
+        "--setup-code",
+        action="store_true",
+        help="Install the /relay slash command for Claude Code and exit"
+    )
     args = parser.parse_args()
+
+    # Handle --setup-code
+    if args.setup_code:
+        _setup_code()
+        return
 
     # Set client identity for notification filtering
     _client_identity = args.client
@@ -356,3 +416,7 @@ if __name__ == "__main__":
     # Run with stdio transport (standard for Claude Desktop/Code integration)
     # All logging goes to stderr; stdout is reserved for MCP JSON-RPC messages
     mcp.run(transport="stdio")
+
+
+if __name__ == "__main__":
+    main()
