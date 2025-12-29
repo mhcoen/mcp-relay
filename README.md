@@ -14,7 +14,7 @@ Relay connects them without requiring you to manually specify questions and cut 
 
 ```
 [In Desktop]
-You:     Send this error to Code: "TypeError: cannot unpack non-iterable NoneType"
+You:     Send my last error message to Code.
 Desktop: [sends via relay]
 
 [notification pops up in Code's terminal]
@@ -33,7 +33,7 @@ You:     My classifier's stuck at 72% accuracy. Send the
          training config and last epoch's metrics to Desktop.
 Code:    [sends config.yaml and metrics via relay]
 
-[notification pops up in Desktop]
+[System notification appears that a message has been sent to Desktop]
 
 [In Desktop]
 You:     relay
