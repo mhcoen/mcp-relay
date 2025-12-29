@@ -118,7 +118,7 @@ Add this to the `mcpServers` section (adjust paths for your system):
   "mcpServers": {
     "relay": {
       "command": "/path/to/mcp-relay/.venv/bin/python",
-      "args": ["/path/to/mcp-relay/relay_server.py"]
+      "args": ["/path/to/mcp-relay/relay_server.py", "--client", "desktop"]
     }
   }
 }

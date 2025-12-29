@@ -21,6 +21,7 @@ Usage:
 
 """
 
+import argparse
 import platform
 import sqlite3
 import subprocess
@@ -47,6 +48,9 @@ IDLE_TIMEOUT = 3600        # Exit after 1 hour of inactivity
 
 # Valid sender values (for defensive validation)
 VALID_SENDERS = {"desktop", "code"}
+
+# Client identity (set via --client argument, used for notification filtering)
+_client_identity: Optional[str] = None
 
 # Track last activity for idle timeout
 _last_activity = time.time()
@@ -143,22 +147,28 @@ def _notification_loop() -> None:
         if _is_idle():
             sys.exit(0)
 
+        # Skip notifications if client identity not set
+        if _client_identity is None:
+            time.sleep(NOTIFY_POLL_INTERVAL)
+            continue
+
         try:
             with _get_connection() as conn:
-                # Find unread messages from either side
-                rows = conn.execute("""
+                # Find unread messages FROM the other client (incoming messages only)
+                other_client = "desktop" if _client_identity == "code" else "code"
+                read_col = "read_by_code_at" if _client_identity == "code" else "read_by_desktop_at"
+                rows = conn.execute(f"""
                     SELECT id, sender, message
                     FROM messages
-                    WHERE (sender = 'desktop' AND read_by_code_at IS NULL)
-                       OR (sender = 'code' AND read_by_desktop_at IS NULL)
-                """).fetchall()
+                    WHERE sender = ? AND {read_col} IS NULL
+                """, (other_client,)).fetchall()
 
             for row in rows:
                 msg_id = row["id"]
                 if msg_id not in notified:
                     sender = row["sender"].title()
-                    recipient = "Desktop" if row["sender"] == "code" else "Code"
-                    _send_notification(f"Relay: {sender} to {recipient}", f"Mesg: {row['message']}")
+                    recipient = _client_identity.title()
+                    _send_notification(f"New message for {recipient} from {sender}", row["message"])
                     notified.add(msg_id)
 
         except Exception:
@@ -330,6 +340,17 @@ def relay_clear() -> dict:
 # =============================================================================
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="MCP Relay Server")
+    parser.add_argument(
+        "--client",
+        choices=["desktop", "code"],
+        help="Client identity for notification filtering"
+    )
+    args = parser.parse_args()
+
+    # Set client identity for notification filtering
+    _client_identity = args.client
+
     # Start background notification thread
     _start_notification_thread()
     # Run with stdio transport (standard for Claude Desktop/Code integration)
