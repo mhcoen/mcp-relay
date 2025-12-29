@@ -89,9 +89,11 @@ When a message arrives, you'll get a system notification so you know to check th
 | Linux | notify-send | Requires libnotify |
 | Windows | PowerShell toast | Native toast notifications |
 
-Notification duration and behavior are controlled by your OS settings, not the script.
+Notifications include sound. Duration and display behavior are controlled by your OS settings.
 
 ## Setup
+
+**What's uvx?** [uvx](https://docs.astral.sh/uv/) runs Python packages directly without installing them globally. It handles dependencies automatically. If you don't have it: `curl -LsSf https://astral.sh/uv/install.sh | sh` (See [astral.sh/uv](https://astral.sh/uv) for more info.)
 
 ### 1. Configure Claude Desktop
 

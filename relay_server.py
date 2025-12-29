@@ -122,10 +122,15 @@ def _send_notification(title: str, message: str) -> None:
     if system == "Darwin":  # macOS
         message = message.replace('\\', '\\\\').replace('"', '\\"')
         title = title.replace('\\', '\\\\').replace('"', '\\"')
-        script = f'display notification "{message}" with title "{title}"'
+        script = f'display notification "{message}" with title "{title}" sound name "tink"'
         subprocess.run(["osascript", "-e", script], capture_output=True)
     elif system == "Linux":
         subprocess.run(["notify-send", title, message], capture_output=True)
+        # Try to play a sound (fails silently if paplay/sound not available)
+        subprocess.run(
+            ["paplay", "/usr/share/sounds/freedesktop/stereo/message.oga"],
+            capture_output=True
+        )
     elif system == "Windows":
         ps_script = f'''
         [Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null
@@ -133,6 +138,9 @@ def _send_notification(title: str, message: str) -> None:
         $xml = [Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent($template)
         $xml.GetElementsByTagName("text")[0].AppendChild($xml.CreateTextNode("{title}"))
         $xml.GetElementsByTagName("text")[1].AppendChild($xml.CreateTextNode("{message}"))
+        $audio = $xml.CreateElement("audio")
+        $audio.SetAttribute("src", "ms-winsoundevent:Notification.Default")
+        $xml.DocumentElement.AppendChild($audio)
         $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
         [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier("Relay").Show($toast)
         '''
@@ -304,11 +312,6 @@ def relay_fetch(
                 [now] + ids
             )
             conn.commit()
-            # Re-fetch to return post-update timestamps
-            rows = conn.execute("""
-                SELECT id, sender, message, timestamp, read_by_desktop_at, read_by_code_at
-                FROM messages WHERE id IN ({}) ORDER BY id DESC
-            """.format(placeholders), ids).fetchall()
 
     # Return in chronological order (oldest first, newest last)
     return [dict(row) for row in reversed(rows)]
