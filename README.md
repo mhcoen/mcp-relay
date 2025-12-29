@@ -47,7 +47,7 @@ Code:    [sends via relay]
 You:     relay
 Desktop: Class 2 is getting confused with class 0—they may be
          semantically close. I need more examples.
-         [sends request to Code via relay]
+         [sends request to automatically Code via relay]
 ```
 
 ## Usage
@@ -130,7 +130,7 @@ Notification duration and behavior are controlled by your OS settings, not the s
 
 **The relay is global.** The buffer at `~/.relay_buffer.db` is shared across all projects. Claude Desktop has no concept of which project you're working on—it's a general-purpose chat interface—so per-project isolation isn't practical. This is intentional: one user, one machine, one relay.
 
-If you switch projects in Code, the relay comes with you. Old messages from the previous project may still be there; use `relay_clear()` or `/relay clear` if you want a fresh start.
+If you switch projects in Code, the relay comes with you. Old messages from the previous project may still be there; use `relay_clear()` or `/relay clear` if you want a fresh start. If you want separate conversations in Desktop for different projects, just start a new chat there.
 
 ## Tools
 
