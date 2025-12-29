@@ -124,13 +124,11 @@ Add this to the `mcpServers` section (adjust paths for your system):
 }
 ```
 
-Then teach Desktop the conventions by telling it to remember these instructions:
+Then add these memories to Desktop (paste each one):
 
-1. "Remember: when I say 'relay:' followed by text, send that text to the relay with sender 'desktop' using relay_send. This is a prompt for Claude Code."
+1. "Remember: when I say 'relay:' followed by text, send that text to the relay with sender 'desktop' using relay_send."
 
-2. "Remember: when I say 'relay' fetch recent messages from the relay MCP to show Code's responses."
-
-(Claude Desktop will save these as memories and apply them in future conversations.)
+2. "Remember: when I say 'relay' by itself, fetch recent messages from the relay."
 
 ### Claude Code
 
