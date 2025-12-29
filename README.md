@@ -1,6 +1,6 @@
 # Relay
 
-A wonderfully simple tool that moves information—files, code, data, conversation context—between Claude Desktop and Claude Code.
+A wonderfully simple tool that moves information—files, code, data, comments, directions, etc.—between Claude Desktop and Claude Code while keeping their main context windows separate.
 
 Both clients connect to a shared buffer via MCP. Just say "ask Desktop" or "send this to Code"—the models handle the rest. Models will also automatically send messages if they determine they need information the other model has. System notifications alert you when something's waiting on the other side.
 
