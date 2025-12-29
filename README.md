@@ -6,9 +6,22 @@ Both clients connect to a shared buffer via MCP. Just say "ask Desktop" or "send
 
 **Why?** Desktop and Code have different strengths. Desktop is better for conversation—planning, brainstorming, reviewing, iterating on prose. Code is better for execution—editing files, running commands, working through errors. But they don't share context. If you draft something in Desktop and want Code to implement it, or you want Desktop's opinion on code you're writing, you're copy-pasting between apps.
 
-Relay connects them without requiring you manually specify questions and cut & paste between windows. This is basic functionality that should have been integrated by Anthropic. 
+Relay connects them without requiring you to manually specify questions and cut & paste between windows. This is basic functionality that should have been integrated by Anthropic.
 
-## Example
+## Quick Example
+
+```
+[In Desktop]
+You:     Send this error to Code: "TypeError: cannot unpack non-iterable NoneType"
+Desktop: [sends via relay]
+
+[In Code]
+You:     /relay
+Code:    Got it. That's from line 47 in parser.py—the regex isn't matching.
+         [fixes the bug]
+```
+
+## Extended Example
 
 ```
 [In Code]
@@ -47,7 +60,7 @@ Code:    [sends via relay]
 You:     relay
 Desktop: Class 2 is getting confused with class 0—they may be
          semantically close. I need more examples.
-         [sends request to automatically Code via relay]
+         [sends request to Code via relay]
 ```
 
 ## Usage
@@ -55,11 +68,6 @@ Desktop: Class 2 is getting confused with class 0—they may be
 Type `relay` in Desktop or `/relay` in Code to check for messages from the other side. That's the primary interaction.
 
 Sending is usually implicit. When you say "Ask Desktop if this looks right" or "Send the README to Code," the models recognize the intent and call the relay automatically. Explicit send syntax exists—`relay: <message>` in Desktop, `/relay <message>` in Code—but you'll rarely need it.
-
-## Note 
-
-In general, for messages that would be a page or two in length this is quite fast. If you want to send a long file, however, it is faster to just manually drag it into the LLM-interface that you want to access it. You can still send accompanying messages using relay but the architectures of Claude Desktop and Claude Code don't optimize file transport via an MCP server.
-
 
 ## Setup
 
@@ -137,6 +145,8 @@ Notification duration and behavior are controlled by your OS settings, not the s
 
 If you switch projects in Code, the relay comes with you. Old messages from the previous project may still be there; use `relay_clear()` or `/relay clear` if you want a fresh start. If you want separate conversations in Desktop for different projects, just start a new chat there.
 
+**Large files are slow.** For messages a page or two in length, the relay is fast. For large files, it's faster to drag them directly into the interface you want. You can still send accompanying context via relay.
+
 ## Tools
 
 | Tool | Description |
@@ -153,10 +163,6 @@ If you switch projects in Code, the relay comes with you. Old messages from the 
 - Idle timeout: 1 hour (server exits automatically when inactive)
 - Transport: stdio (standard MCP)
 - Python: 3.9+
-
-## Seamless Mode
-
-A version that auto-fetches incoming messages without typing `relay` exists but isn't included in this repository.
 
 ## Author
 
