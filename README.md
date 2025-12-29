@@ -93,17 +93,9 @@ Notification duration and behavior are controlled by your OS settings, not the s
 
 ## Setup
 
-### Claude Desktop
+### 1. Configure Claude Desktop
 
-Add the relay server to your Claude Desktop config:
-
-| Platform | Config location |
-|----------|-----------------|
-| macOS    | `~/Library/Application Support/Claude/claude_desktop_config.json` |
-| Linux    | `~/.config/Claude/claude_desktop_config.json` |
-| Windows  | `%APPDATA%\Claude\claude_desktop_config.json` |
-
-Add this to the `mcpServers` section:
+Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
 
 ```json
 {
@@ -116,21 +108,11 @@ Add this to the `mcpServers` section:
 }
 ```
 
-Then add these memories to Desktop (paste each one):
+Restart Claude Desktop.
 
-1. "Remember: when I say 'relay:' followed by text, send that text to the relay with sender 'desktop' using relay_send."
+### 2. Configure Claude Code
 
-2. "Remember: when I say 'relay' by itself, fetch recent messages from the relay."
-
-### Claude Code
-
-1. Install the `/relay` slash command (one-time setup):
-
-```bash
-uvx mcp-server-relay --setup-code
-```
-
-2. Add the MCP server to your project's `.mcp.json`:
+Add to `.mcp.json` in your project root (or `~/.claude/.mcp.json` for global):
 
 ```json
 {
@@ -143,7 +125,13 @@ uvx mcp-server-relay --setup-code
 }
 ```
 
-**Note:** After adding the MCP server config, restart both Claude Desktop and Claude Code for the relay to connect.
+### 3. Install the `/relay` slash command (optional)
+
+```bash
+uvx mcp-server-relay --setup-code
+```
+
+This copies the slash command to `~/.claude/commands/`.
 
 ## Design Notes
 
