@@ -20,7 +20,7 @@ Desktop: [sends via relay]
 [notification pops up in Code's terminal]
 
 [In Code]
-You:     /get (You can also type _get_ but /get is faster.)
+You:     /get (You can also type "get" but /get is faster.)
 Code:    Got it. That's from line 47 in parser.py—the regex isn't matching.
          [fixes the bug]
 ```
