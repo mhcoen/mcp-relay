@@ -20,7 +20,7 @@ Desktop: [sends via relay]
 [notification pops up in Code's terminal]
 
 [In Code]
-You:     /get
+You:     /get (You can also type *get* but /get is faster.)
 Code:    Got it. That's from line 47 in parser.py—the regex isn't matching.
          [fixes the bug]
 ```
@@ -75,7 +75,7 @@ Desktop: Class 2 is getting confused with class 0—they may be
 
 Type `get` in Desktop or `/get` in Code to check for messages from the other side. That's the primary interaction.
 
-Sending is usually implicit. When you say "Ask Desktop if this looks right" or "Send the README to Code," the models recognize the intent and call the relay automatically. Models may also send messages on their own if they decide they need input from the other side.
+Sending is easy and implicit. When you say "Ask Desktop if this looks right" or "Send the README to Code," the models recognize the intent and call the relay automatically. Models may also send messages on their own if they decide they need input from the other side.
 
 ## Notifications
 
