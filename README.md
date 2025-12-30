@@ -117,7 +117,7 @@ Restart Claude Desktop.
 
 ### 2. Configure Claude Code
 
-Add to `.mcp.json` in your project root (or `~/.claude/.mcp.json` for global):
+Add to `.mcp.json` in your project root:
 
 ```json
 {
