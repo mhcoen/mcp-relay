@@ -8,7 +8,7 @@ Both Claudes can send messages autonomously—when they need input from the othe
 
 Relay connects them without requiring you to manually specify questions and cut & paste between windows. This is basic functionality that should have been integrated by Anthropic.
 
-**You're always in control.** Messages sit in the buffer until you explicitly fetch them. The models can't pull from the relay on their own—you have to type `relay` or `/relay`. This means there's no runaway inter-LLM conversation burning through your tokens. You see a notification, you decide whether to check it.
+**You're always in control.** Messages sit in the buffer until you explicitly fetch them. The models can't pull from the relay on their own—you have to type `get` or `/get`. This means there's no runaway inter-LLM conversation burning through your tokens. You see a notification, you decide whether to check it.
 
 ## Quick Example
 
@@ -20,7 +20,7 @@ Desktop: [sends via relay]
 [notification pops up in Code's terminal]
 
 [In Code]
-You:     /relay
+You:     /get
 Code:    Got it. That's from line 47 in parser.py—the regex isn't matching.
          [fixes the bug]
 ```
@@ -36,7 +36,7 @@ Code:    [sends config.yaml and metrics via relay]
 [System notification appears that a message has been sent to Desktop]
 
 [In Desktop]
-You:     relay
+You:     get
 Desktop: [fetches config and metrics]
          The loss curve suggests you're underfitting. Learning
          rate 1e-5 is conservative for a model this size...
@@ -53,7 +53,7 @@ Desktop: [sends updated config via relay]
 [System notification appears that a message has been sent to Code]
 
 [In Code]
-You:     /relay
+You:     /get
 Code:    Got it. Updating config.yaml and adding class weights
          to the loss function.
          [edits files, starts training run]
@@ -65,7 +65,7 @@ You:     Yeah, send the confusion matrix.
 Code:    [sends via relay]
 
 [In Desktop]
-You:     relay
+You:     get
 Desktop: Class 2 is getting confused with class 0—they may be
          semantically close. I need more examples.
          [automatically sends request to Code via relay]
@@ -73,9 +73,9 @@ Desktop: Class 2 is getting confused with class 0—they may be
 
 ## Usage
 
-Type `relay` in Desktop or `/relay` in Code to check for messages from the other side. That's the primary interaction.
+Type `get` in Desktop or `/get` in Code to check for messages from the other side. That's the primary interaction.
 
-Sending is usually implicit. When you say "Ask Desktop if this looks right" or "Send the README to Code," the models recognize the intent and call the relay automatically. Models may also send messages on their own if they decide they need input from the other side. Explicit send syntax exists—`relay: <message>` in Desktop, `/relay <message>` in Code—but you'll rarely need it.
+Sending is usually implicit. When you say "Ask Desktop if this looks right" or "Send the README to Code," the models recognize the intent and call the relay automatically. Models may also send messages on their own if they decide they need input from the other side.
 
 ## Notifications
 
@@ -130,7 +130,7 @@ Add to `.mcp.json` in your project root (or `~/.claude/.mcp.json` for global):
 }
 ```
 
-### 3. Install the `/relay` slash command (optional)
+### 3. Install the `/get` slash command (optional)
 
 ```bash
 uvx mcp-server-relay --setup-code
@@ -142,7 +142,7 @@ This copies the slash command to `~/.claude/commands/`.
 
 **The relay is global.** The buffer at `~/.relay_buffer.db` is shared across all projects. Claude Desktop has no concept of which project you're working on—it's a general-purpose chat interface—so per-project isolation isn't practical. This is intentional: one user, one machine, one relay.
 
-If you switch projects in Code, the relay comes with you. Old messages from the previous project may still be there; use `relay_clear()` or `/relay clear` if you want a fresh start. If you want separate conversations in Desktop for different projects, just start a new chat there.
+If you switch projects in Code, the relay comes with you. Old messages from the previous project may still be there; use `relay_clear()` if you want a fresh start. If you want separate conversations in Desktop for different projects, just start a new chat there.
 
 **Large files are slow.** For messages a page or two in length, the relay is fast. For large files, it's faster to drag them directly into the interface you want. You can still send accompanying context via relay.
 

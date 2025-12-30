@@ -5,8 +5,7 @@ This server provides a persistent message relay buffer accessible via MCP tools.
 Both Claude Desktop and Claude Code connect as MCP clients; neither shares
 conversation history with the other.
 
-Check for messages with relay (Desktop) or /relay (Code). Send
-explicitly with relay: <message> or /relay <message>—or just say 'ask
+Check for messages with get (Desktop) or /get (Code). Just say 'ask
 Desktop' or 'tell Code' and the model figures it out.
 
 A background thread polls for unread messages and triggers system notifications
@@ -343,8 +342,8 @@ def relay_clear() -> dict:
 # SETUP COMMAND
 # =============================================================================
 
-RELAY_COMMAND = '''\
-# Relay Command
+GET_COMMAND = '''\
+# Get Command
 
 IMMEDIATELY execute the following without deliberation:
 
@@ -376,12 +375,12 @@ def _get_commands_dir() -> Path:
 
 
 def _setup_code() -> None:
-    """Install the /relay slash command for Claude Code."""
+    """Install the /get slash command for Claude Code."""
     commands_dir = _get_commands_dir()
     commands_dir.mkdir(parents=True, exist_ok=True)
-    relay_path = commands_dir / "relay.md"
-    relay_path.write_text(RELAY_COMMAND)
-    print(f"Installed /relay command to {relay_path}")
+    get_path = commands_dir / "get.md"
+    get_path.write_text(GET_COMMAND)
+    print(f"Installed /get command to {get_path}")
 
 
 # =============================================================================
