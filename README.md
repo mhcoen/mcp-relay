@@ -1,3 +1,5 @@
+<!-- mcp-name: io.github.mhcoen/mcp-relay -->
+
 # Relay
 
 A wonderfully simple tool that moves information—files, code, data, comments, directions, etc.—between Claude Desktop and Claude Code while keeping their main context windows separate.

@@ -7,12 +7,12 @@
     "url": "https://github.com/mhcoen/mcp-relay",
     "source": "github"
   },
-  "version": "1.2.1",
+  "version": "1.2.4",
   "packages": [
     {
       "registryType": "pypi",
       "identifier": "mcp-server-relay",
-      "version": "1.2.1",
+      "version": "1.2.4",
       "transport": {
         "type": "stdio"
       }
