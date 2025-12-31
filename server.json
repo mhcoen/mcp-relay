@@ -1,0 +1,21 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.mhcoen/mcp-relay",
+  "title": "Relay",
+  "description": "MCP relay server for Claude Desktop <-> Claude Code communication",
+  "repository": {
+    "url": "https://github.com/mhcoen/mcp-relay",
+    "source": "github"
+  },
+  "version": "1.2.1",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "mcp-server-relay",
+      "version": "1.2.1",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}

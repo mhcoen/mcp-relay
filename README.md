@@ -166,3 +166,4 @@ If you switch projects in Code, the relay comes with you. Old messages from the 
 ## Author
 
 Michael Coen — mhcoen@alum.mit.edu · mhcoen@gmail.com
+<!-- mcp-name: io.github.mhcoen/mcp-relay -->
