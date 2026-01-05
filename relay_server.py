@@ -226,6 +226,36 @@ def _start_notification_thread() -> None:
 mcp = FastMCP("relay")
 
 # =============================================================================
+# RESOURCES
+# =============================================================================
+
+
+@mcp.resource("messages://latest")
+def messages_latest() -> str:
+    """
+    Get the latest messages from the relay buffer.
+
+    Returns messages in chronological order (oldest first).
+    Does NOT mark messages as read - use relay_fetch for that.
+    """
+    with _get_connection() as conn:
+        rows = conn.execute("""
+            SELECT sender, message, timestamp
+            FROM messages
+            ORDER BY id DESC LIMIT 10
+        """).fetchall()
+
+    if not rows:
+        return "No messages in relay buffer."
+
+    lines = []
+    for i, row in enumerate(reversed(rows), 1):
+        sender = row["sender"].title()
+        lines.append(f"{i}. [{sender}]: {row['message']}")
+    return "\n\n".join(lines)
+
+
+# =============================================================================
 # TOOLS
 # =============================================================================
 
@@ -375,17 +405,99 @@ def relay_clear() -> dict:
 # SETUP COMMAND
 # =============================================================================
 
+PREVIEW_SCRIPT = '''\
+#!/usr/bin/env python3
+"""Show notification of pending relay messages for SessionStart hook."""
+import platform
+import sqlite3
+import subprocess
+from pathlib import Path
+
+DB_PATH = Path.home() / ".relay_buffer.db"
+
+def send_notification(title: str, message: str) -> None:
+    """Send a system notification."""
+    system = platform.system()
+    if system == "Darwin":
+        message = message.replace("\\\\", "\\\\\\\\").replace(\'"\', \'\\\\"\')
+        title = title.replace("\\\\", "\\\\\\\\").replace(\'"\', \'\\\\"\')
+        script = f\'display notification "{message}" with title "{title}"\'
+        subprocess.run(["osascript", "-e", script], capture_output=True)
+    elif system == "Linux":
+        subprocess.run(["notify-send", title, message], capture_output=True)
+    elif system == "Windows":
+        ps_script = f"""
+        [Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null
+        $template = [Windows.UI.Notifications.ToastTemplateType]::ToastText02
+        $xml = [Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent($template)
+        $xml.GetElementsByTagName("text")[0].AppendChild($xml.CreateTextNode("{title}"))
+        $xml.GetElementsByTagName("text")[1].AppendChild($xml.CreateTextNode("{message}"))
+        $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
+        [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier("Relay").Show($toast)
+        """
+        subprocess.run(["powershell", "-Command", ps_script], capture_output=True)
+
+def main():
+    if not DB_PATH.exists():
+        return
+
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+
+    # Get unread messages from Desktop (for Code user)
+    rows = conn.execute("""
+        SELECT sender, message FROM messages
+        WHERE sender = \'desktop\' AND read_by_code_at IS NULL
+        ORDER BY id DESC LIMIT 5
+    """).fetchall()
+
+    conn.close()
+
+    if not rows:
+        return
+
+    # Build notification message with previews
+    previews = []
+    for i, row in enumerate(reversed(rows), 1):
+        preview = row["message"][:80]
+        if len(row["message"]) > 80:
+            preview += "..."
+        previews.append(f"{i}. {preview}")
+
+    title = f"📬 {len(rows)} message(s) from Desktop"
+    body = "\\n".join(previews[:3])  # Show up to 3 previews
+    if len(rows) > 3:
+        body += f"\\n...and {len(rows) - 3} more"
+
+    send_notification(title, body)
+
+if __name__ == "__main__":
+    main()
+'''
+
 GET_COMMAND = '''\
 # Get Command
+
+@relay:messages://latest
 
 IMMEDIATELY execute the following without deliberation:
 
 **If $ARGUMENTS is empty:**
-1. Call `relay_fetch(limit=5, reader="code")`
-2. Find the most recent message from sender "desktop"
-3. Execute those instructions
+1. Read the messages above from @relay:messages://latest
+2. Call `relay_fetch(limit=5, reader="code")` to mark them as read
+3. Find the most recent message from sender "desktop"
+4. Execute those instructions
 
-**If $ARGUMENTS is not empty:**
+**If $ARGUMENTS is "status":**
+Call `relay_fetch(limit=20, reader=None, unread_only=False)` and report:
+- Total message count
+- Unread count for Code
+- Time of most recent message
+
+**If $ARGUMENTS is "clear":**
+Call `relay_clear()` to delete all messages.
+
+**Otherwise (any other $ARGUMENTS):**
 Call `relay_send(message="$ARGUMENTS", sender="code")` immediately.
 
 ## Arguments
@@ -393,27 +505,71 @@ $ARGUMENTS
 '''
 
 
-def _get_commands_dir() -> Path:
-    """Get the Claude Code commands directory for the current platform."""
+def _get_claude_dir() -> Path:
+    """Get the Claude Code config directory for the current platform."""
     system = platform.system()
     if system == "Windows":
-        # Windows: %APPDATA%\Claude\commands
         appdata = os.environ.get("APPDATA")
         if appdata:
-            return Path(appdata) / "Claude" / "commands"
-        return Path.home() / "AppData" / "Roaming" / "Claude" / "commands"
+            return Path(appdata) / "Claude"
+        return Path.home() / "AppData" / "Roaming" / "Claude"
     else:
-        # macOS and Linux: ~/.claude/commands
-        return Path.home() / ".claude" / "commands"
+        return Path.home() / ".claude"
+
+
+def _get_commands_dir() -> Path:
+    """Get the Claude Code commands directory for the current platform."""
+    return _get_claude_dir() / "commands"
 
 
 def _setup_code() -> None:
-    """Install the /get slash command for Claude Code."""
-    commands_dir = _get_commands_dir()
+    """Install the /get slash command, preview script, and SessionStart hook."""
+    import json
+    import stat
+
+    claude_dir = _get_claude_dir()
+
+    # 1. Install /get command
+    commands_dir = claude_dir / "commands"
     commands_dir.mkdir(parents=True, exist_ok=True)
     get_path = commands_dir / "get.md"
     get_path.write_text(GET_COMMAND)
     print(f"Installed /get command to {get_path}")
+
+    # 2. Install preview script
+    scripts_dir = claude_dir / "scripts"
+    scripts_dir.mkdir(parents=True, exist_ok=True)
+    preview_path = scripts_dir / "relay-preview.py"
+    preview_path.write_text(PREVIEW_SCRIPT)
+    preview_path.chmod(preview_path.stat().st_mode | stat.S_IXUSR)
+    print(f"Installed preview script to {preview_path}")
+
+    # 3. Install SessionStart hook (merge with existing settings)
+    settings_path = claude_dir / "settings.json"
+    settings = {}
+    if settings_path.exists():
+        try:
+            settings = json.loads(settings_path.read_text())
+        except json.JSONDecodeError:
+            pass
+
+    # Add hook config
+    if "hooks" not in settings:
+        settings["hooks"] = {}
+
+    settings["hooks"]["SessionStart"] = [
+        {
+            "hooks": [
+                {
+                    "type": "command",
+                    "command": f"python3 {preview_path}"
+                }
+            ]
+        }
+    ]
+
+    settings_path.write_text(json.dumps(settings, indent=2))
+    print(f"Installed SessionStart hook to {settings_path}")
 
 
 # =============================================================================

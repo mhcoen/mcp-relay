@@ -77,7 +77,17 @@ Desktop: Class 2 is getting confused with class 0—they may be
 
 Type `get` in Desktop or `/get` in Code to check for messages from the other side. That's the primary interaction.
 
-Sending is easy and implicit. When you say "Ask Desktop if this looks right" or "Send the README to Code," the models recognize the intent and call the relay automatically. Models may also send messages on their own if they decide they need input from the other side.
+**Command variants:**
+- `/get` — Fetch and execute messages from Desktop
+- `/get status` — Show message count and last activity
+- `/get clear` — Clear all messages from the buffer
+- `/get <message>` — Send a message to Desktop
+
+**Resource access:** You can also reference messages directly with `@relay:messages://latest`. This is faster than `/get` and works in plan mode.
+
+**Startup preview:** When Code starts, you'll see a preview of any pending messages from Desktop. Use `/get` to read them in full.
+
+Sending is easy and implicit. When you say "Ask Desktop if this looks right" or "Send the README to Code," the models recognize the intent and call the relay automatically.
 
 ## Notifications
 
@@ -123,7 +133,11 @@ Add to your Claude Desktop config:
 }
 ```
 
-Restart Claude Desktop.
+Restart Claude Desktop, then tell it to remember this instruction:
+
+> Remember: When the user says "get" or "/get" alone, fetch recent messages from the relay using relay_fetch.
+
+You can verify it was recorded by saying "Show me my memory edits."
 
 ### 2. Configure Claude Code
 
