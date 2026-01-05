@@ -91,7 +91,15 @@ When a message arrives, you'll get a system notification so you know to check th
 | Linux | notify-send | Requires libnotify |
 | Windows | PowerShell toast | Native toast notifications |
 
-Notifications include sound. Duration and display behavior are controlled by your OS settings.
+**Sound:** Add `--sound` to enable notification sounds. Without a value, uses platform defaults. With a value, uses the specified sound:
+
+| Platform | Default | Custom example |
+|----------|---------|----------------|
+| macOS | `blow` | `--sound tink` |
+| Linux | freedesktop message sound | `--sound /path/to/sound.oga` |
+| Windows | system default | `--sound ms-winsoundevent:Notification.IM` |
+
+Duration and display behavior are controlled by your OS settings.
 
 ## Setup
 
@@ -109,7 +117,7 @@ Add to your Claude Desktop config:
   "mcpServers": {
     "relay": {
       "command": "uvx",
-      "args": ["mcp-server-relay", "--client", "desktop"]
+      "args": ["mcp-server-relay", "--client", "desktop", "--sound"]
     }
   }
 }
@@ -132,6 +140,8 @@ Add to `.mcp.json` in your project root:
 }
 ```
 
+Note: Only Desktop needs `--sound` since it handles notifications for both sides.
+
 ### 3. Install the `/get` slash command (optional)
 
 ```bash
@@ -139,6 +149,45 @@ uvx mcp-server-relay --setup-code
 ```
 
 This copies the slash command to `~/.claude/commands/`.
+
+### Alternative: Install from GitHub
+
+If you prefer not to use uvx, clone the repository and run directly:
+
+```bash
+git clone https://github.com/mhcoen/mcp-relay.git
+cd mcp-relay
+python -m venv .venv
+.venv/bin/pip install -e .
+```
+
+Then use the full path in your configs:
+
+**Claude Desktop** (`claude_desktop_config.json`):
+```json
+{
+  "mcpServers": {
+    "relay": {
+      "command": "/path/to/mcp-relay/.venv/bin/python",
+      "args": ["/path/to/mcp-relay/relay_server.py", "--client", "desktop", "--sound"]
+    }
+  }
+}
+```
+
+**Claude Code** (`.mcp.json`):
+```json
+{
+  "mcpServers": {
+    "relay": {
+      "command": "/path/to/mcp-relay/.venv/bin/python",
+      "args": ["/path/to/mcp-relay/relay_server.py", "--client", "code"]
+    }
+  }
+}
+```
+
+Replace `/path/to/mcp-relay` with your actual clone location.
 
 ## Design Notes
 

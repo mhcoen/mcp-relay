@@ -32,3 +32,4 @@ build/
 .mcp.json
 .claude/settings.local.json
 .mcpregistry_*
+CLAUDE.md

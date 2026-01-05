@@ -52,6 +52,27 @@ VALID_SENDERS = {"desktop", "code"}
 # Client identity (set via --client argument, used for notification filtering)
 _client_identity: Optional[str] = None
 
+# Debug mode (set via --debug argument)
+_debug_mode: bool = False
+_debug_log_path = Path.home() / ".relay_debug.log"
+
+# Notification sound (set via --sound argument)
+_notification_sound: Optional[str] = None
+SOUND_DEFAULTS = {
+    "Darwin": "blow",
+    "Linux": "/usr/share/sounds/freedesktop/stereo/message.oga",
+    "Windows": "ms-winsoundevent:Notification.Default"
+}
+
+
+def _debug_log(msg: str) -> None:
+    """Write debug message to log file if debug mode is enabled."""
+    if not _debug_mode:
+        return
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    with open(_debug_log_path, "a") as f:
+        f.write(f"[{timestamp}] {msg}\n")
+
 # Track last activity for idle timeout
 _last_activity = time.time()
 _activity_lock = threading.Lock()
@@ -113,6 +134,7 @@ _init_db()
 
 def _send_notification(title: str, message: str) -> None:
     """Send a system notification."""
+    _debug_log(f"_send_notification called: title={title!r}, message={message[:50]!r}...")
     if len(message) > 200:
         message = message[:197] + "..."
 
@@ -121,25 +143,29 @@ def _send_notification(title: str, message: str) -> None:
     if system == "Darwin":  # macOS
         message = message.replace('\\', '\\\\').replace('"', '\\"')
         title = title.replace('\\', '\\\\').replace('"', '\\"')
-        script = f'display notification "{message}" with title "{title}" sound name "tink"'
-        subprocess.run(["osascript", "-e", script], capture_output=True)
+        if _notification_sound:
+            script = f'display notification "{message}" with title "{title}" sound name "{_notification_sound}"'
+        else:
+            script = f'display notification "{message}" with title "{title}"'
+        result = subprocess.run(["osascript", "-e", script], capture_output=True)
+        _debug_log(f"osascript result: returncode={result.returncode}, stderr={result.stderr.decode()!r}")
     elif system == "Linux":
         subprocess.run(["notify-send", title, message], capture_output=True)
-        # Try to play a sound (fails silently if paplay/sound not available)
-        subprocess.run(
-            ["paplay", "/usr/share/sounds/freedesktop/stereo/message.oga"],
-            capture_output=True
-        )
+        if _notification_sound:
+            subprocess.run(["paplay", _notification_sound], capture_output=True)
     elif system == "Windows":
+        audio_line = ""
+        if _notification_sound:
+            audio_line = f'''
+        $audio = $xml.CreateElement("audio")
+        $audio.SetAttribute("src", "{_notification_sound}")
+        $xml.DocumentElement.AppendChild($audio)'''
         ps_script = f'''
         [Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null
         $template = [Windows.UI.Notifications.ToastTemplateType]::ToastText02
         $xml = [Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent($template)
         $xml.GetElementsByTagName("text")[0].AppendChild($xml.CreateTextNode("{title}"))
-        $xml.GetElementsByTagName("text")[1].AppendChild($xml.CreateTextNode("{message}"))
-        $audio = $xml.CreateElement("audio")
-        $audio.SetAttribute("src", "ms-winsoundevent:Notification.Default")
-        $xml.DocumentElement.AppendChild($audio)
+        $xml.GetElementsByTagName("text")[1].AppendChild($xml.CreateTextNode("{message}")){audio_line}
         $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
         [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier("Relay").Show($toast)
         '''
@@ -149,10 +175,12 @@ def _send_notification(title: str, message: str) -> None:
 def _notification_loop() -> None:
     """Background thread: poll for unread messages, notify, and check idle timeout."""
     notified: set[int] = set()
+    _debug_log(f"Notification loop started: client={_client_identity}")
 
     while True:
         # Check idle timeout
         if _is_idle():
+            _debug_log("Idle timeout reached, exiting")
             sys.exit(0)
 
         # Skip notifications if client identity not set
@@ -162,25 +190,25 @@ def _notification_loop() -> None:
 
         try:
             with _get_connection() as conn:
-                # Find unread messages FROM the other client (incoming messages only)
-                other_client = "desktop" if _client_identity == "code" else "code"
-                read_col = "read_by_code_at" if _client_identity == "code" else "read_by_desktop_at"
-                rows = conn.execute(f"""
+                # Find all unread messages (Desktop notifies for both directions)
+                rows = conn.execute("""
                     SELECT id, sender, message
                     FROM messages
-                    WHERE sender = ? AND {read_col} IS NULL
-                """, (other_client,)).fetchall()
+                    WHERE (sender = 'code' AND read_by_desktop_at IS NULL)
+                       OR (sender = 'desktop' AND read_by_code_at IS NULL)
+                """).fetchall()
 
             for row in rows:
                 msg_id = row["id"]
                 if msg_id not in notified:
                     sender = row["sender"].title()
-                    recipient = _client_identity.title()
+                    recipient = "Desktop" if row["sender"] == "code" else "Code"
+                    _debug_log(f"New message {msg_id} for {recipient} from {sender}, sending notification")
                     _send_notification(f"New message for {recipient} from {sender}", row["message"])
                     notified.add(msg_id)
 
-        except Exception:
-            pass  # Silently ignore errors in background thread
+        except Exception as e:
+            _debug_log(f"Error in notification loop: {e}")
 
         time.sleep(NOTIFY_POLL_INTERVAL)
 
@@ -287,13 +315,18 @@ def relay_fetch(
     limit = max(1, min(limit, MAX_MESSAGES))
 
     with _get_connection() as conn:
-        # Build query based on unread_only filter
+        # Build query based on unread_only filter (exclude messages sent by reader)
         if unread_only and reader in VALID_SENDERS:
             col = _READ_COLUMNS[reader]
             rows = conn.execute(f"""
                 SELECT id, sender, message, timestamp, read_by_desktop_at, read_by_code_at
-                FROM messages WHERE {col} IS NULL ORDER BY id DESC LIMIT ?
-            """, (limit,)).fetchall()
+                FROM messages WHERE {col} IS NULL AND sender != ? ORDER BY id DESC LIMIT ?
+            """, (reader, limit)).fetchall()
+        elif reader in VALID_SENDERS:
+            rows = conn.execute("""
+                SELECT id, sender, message, timestamp, read_by_desktop_at, read_by_code_at
+                FROM messages WHERE sender != ? ORDER BY id DESC LIMIT ?
+            """, (reader, limit)).fetchall()
         else:
             rows = conn.execute("""
                 SELECT id, sender, message, timestamp, read_by_desktop_at, read_by_code_at
@@ -390,7 +423,7 @@ def _setup_code() -> None:
 
 def main() -> None:
     """Main entry point for the relay server."""
-    global _client_identity
+    global _client_identity, _debug_mode, _notification_sound
 
     parser = argparse.ArgumentParser(description="MCP Relay Server")
     parser.add_argument(
@@ -403,6 +436,17 @@ def main() -> None:
         action="store_true",
         help="Install the /relay slash command for Claude Code and exit"
     )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Enable debug logging to ~/.relay_debug.log"
+    )
+    parser.add_argument(
+        "--sound",
+        nargs="?",
+        const="default",
+        help="Enable notification sound (optional: custom sound identifier)"
+    )
     args = parser.parse_args()
 
     # Handle --setup-code
@@ -410,11 +454,24 @@ def main() -> None:
         _setup_code()
         return
 
+    # Set debug mode (truncate log on startup for fresh session)
+    _debug_mode = args.debug
+    if _debug_mode:
+        _debug_log_path.write_text("")
+        _debug_log(f"=== Relay server starting: client={args.client} ===")
+
+    # Set notification sound
+    if args.sound == "default":
+        _notification_sound = SOUND_DEFAULTS.get(platform.system())
+    else:
+        _notification_sound = args.sound
+
     # Set client identity for notification filtering
     _client_identity = args.client
 
-    # Start background notification thread
-    _start_notification_thread()
+    # Start background notification thread (Desktop only - Code may have multiple instances)
+    if _client_identity == "desktop":
+        _start_notification_thread()
     # Run with stdio transport (standard for Claude Desktop/Code integration)
     # All logging goes to stderr; stdout is reserved for MCP JSON-RPC messages
     mcp.run(transport="stdio")
