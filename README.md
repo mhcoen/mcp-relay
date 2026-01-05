@@ -203,11 +203,25 @@ Then use the full path in your configs:
 
 Replace `/path/to/mcp-relay` with your actual clone location.
 
+## Design Philosophy
+
+**Transport, not memory.** The relay is a message bus. It does not summarize, compress, rewrite, or interpret messages. There is no shared hidden context, merged system prompts, or cross-agent planning. Messages pass through unchanged. This keeps concerns cleanly separated and avoids epistemic corruption.
+
+**Primarily user-controlled.** Fetching messages is typically an explicit user action (`get` or `/get`), not a background process. This prevents runaway context growth and feedback loops. However, models may send or fetch autonomously when they decide they need input from the other side—the system allows this without encouraging it.
+
+**Independent interfaces.** Desktop and Code remain fully usable on their own. You can have a long conversation in Desktop without Code, or spend hours debugging in Code without Desktop. The relay connects them when you want; it doesn't couple them. This also means no API costs—both interfaces use your existing subscriptions.
+
+**Minimal surface area.** The relay does three things: send, fetch, clear. It does not attempt to provide orchestration, arbitration, consensus, or autonomous behavior. This restraint is intentional. Most multi-agent designs fail by blurring boundaries that should remain clear.
+
+**Scales naturally.** Multiple Code sessions connect to the same Desktop—you direct messages to the appropriate conversation. Additional MCP-speaking peers, alternative storage backends, per-project buffers, and read-only observers all extend cleanly from this design.
+
+This defines a distinct class of infrastructure: a human-mediated, explicitly synchronized multi-agent message bus.
+
 ## Design Notes
 
-**The relay is global.** The buffer at `~/.relay_buffer.db` is shared across all projects. Claude Desktop has no concept of which project you're working on—it's a general-purpose chat interface—so per-project isolation isn't practical. This is intentional: one user, one machine, one relay.
+**The relay is global.** The buffer at `~/.relay_buffer.db` is shared across all projects. Desktop has no concept of which project you're working on, so per-project isolation isn't practical. This is intentional: one user, one machine, one relay.
 
-If you switch projects in Code, the relay comes with you. Old messages from the previous project may still be there; use `relay_clear()` if you want a fresh start. If you want separate conversations in Desktop for different projects, just start a new chat there.
+If you switch projects in Code, the relay comes with you. Old messages from the previous project may still be there; use `/get clear` if you want a fresh start.
 
 **Large files are slow.** For messages a page or two in length, the relay is fast. For large files, it's faster to drag them directly into the interface you want. You can still send accompanying context via relay.
 
